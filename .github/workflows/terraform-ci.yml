@@ -49,13 +49,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # soft_fail keeps the job green while still printing every finding.
-      # Some findings are expected in a lab (no private endpoints, no geo
-      # redundancy, purge protection off). The README explains which ones
-      # and why.
+      # Fails the build on any new finding. Known lab trade-offs are skipped
+      # inline in the .tf files with a reason next to each one.
       - uses: bridgecrewio/checkov-action@v12
         with:
           directory: .
           framework: terraform
           quiet: true
-          soft_fail: true

@@ -9,7 +9,7 @@ It is a lab, not a production deployment. It is small on purpose and costs close
 | Resource | What it shows |
 | --- | --- |
 | Resource group with standard tags | Consistent tagging (Owner, Environment, ManagedBy, Project) applied from one `locals` block |
-| Storage account | Secure defaults: TLS 1.2 minimum, HTTPS only, no public blob access, no cross-tenant replication, infrastructure encryption, soft delete and versioning for blobs |
+| Storage account | Secure defaults: TLS 1.2 minimum, HTTPS only, no public blob access, no cross-tenant replication, infrastructure encryption, a 1-day SAS expiry policy, soft delete and versioning for blobs |
 | Key Vault | Azure RBAC for data access instead of access policies, soft delete, optional purge protection |
 | Three Entra ID security groups | Least privilege: each group gets the smallest built-in role it needs, scoped to the resource group, the storage account or the vault, never the subscription |
 | Two Azure Policy assignments | Policy as code: "Allowed locations" and "Require a tag on resources", assigned to the resource group |
@@ -114,12 +114,16 @@ For a team, state belongs in shared storage with locking. `backend.tf` has a com
 
 None of these steps need Azure credentials, so they pass on a public repo without secrets.
 
-Checkov runs in soft-fail mode: it prints every finding but does not fail the build. Some findings are expected because of lab choices that a real environment would make differently:
+A checkov finding fails the build. Some checks are skipped on purpose because of lab choices that a real environment would make differently. Each skip is a `#checkov:skip` comment inside the resource, with the reason next to it:
 
-- no private endpoints, and the Key Vault network rule defaults to Allow so it can be reached from a laptop
+- no private endpoints, and public network access stays on so the storage account and vault can be reached from a laptop
 - locally redundant storage instead of geo-redundant
-- Key Vault purge protection off, so the lab can be destroyed and rebuilt
+- Microsoft-managed encryption keys instead of customer-managed keys
+- Key Vault purge protection off, so the lab can be destroyed and rebuilt (see `key_vault_purge_protection`)
 - storage account key access left on by default (see `storage_shared_key_enabled`)
+- no queue logging, since the lab uses no queues
+
+When I ran checkov locally, 9 checks passed and 11 were skipped for the reasons above.
 
 ### Optional plan and apply with OIDC
 

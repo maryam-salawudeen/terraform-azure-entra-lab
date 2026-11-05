@@ -3,6 +3,12 @@
 # every other Azure permission: role assignments, ideally to groups.
 
 resource "azurerm_key_vault" "lab" {
+  # Lab trade-offs, accepted on purpose. Each one is explained in the README.
+  #checkov:skip=CKV_AZURE_42:Purge protection is controlled by key_vault_purge_protection, off so the lab can be rebuilt
+  #checkov:skip=CKV_AZURE_110:Purge protection is controlled by key_vault_purge_protection, off so the lab can be rebuilt
+  #checkov:skip=CKV_AZURE_109:Firewall default is Allow so the vault can be reached from a laptop
+  #checkov:skip=CKV_AZURE_189:Public network access kept so the vault can be reached from a laptop
+  #checkov:skip=CKV2_AZURE_32:Private endpoints need a VNet and cost money, out of scope for the lab
   name                = "kv-${var.prefix}-${random_string.suffix.result}"
   location            = azurerm_resource_group.lab.location
   resource_group_name = azurerm_resource_group.lab.name
