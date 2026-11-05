@@ -1,0 +1,29 @@
+# Copy this file to terraform.tfvars and change the values.
+# terraform.tfvars is gitignored, so your real values never get committed.
+
+# Optional. If you leave this out, export ARM_SUBSCRIPTION_ID instead:
+#   export ARM_SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+# subscription_id = "00000000-0000-0000-0000-000000000000"
+
+prefix      = "entralab"
+environment = "lab"
+location    = "canadacentral"
+
+allowed_locations = ["canadacentral", "canadaeast"]
+
+# A name or team, not an email address.
+owner_tag = "your-name"
+
+tags = {
+  CostCenter = "personal-lab"
+}
+
+# Set to false to make the policies audit-only while you experiment.
+policy_enforcement = true
+
+# Leave these off for a lab you plan to destroy.
+storage_shared_key_enabled = true
+key_vault_purge_protection = false
+
+# Needs Entra ID P1 and Conditional Access admin rights.
+enable_conditional_access = false
