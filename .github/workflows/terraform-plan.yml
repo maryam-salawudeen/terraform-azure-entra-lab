@@ -1,0 +1,79 @@
+# OPTIONAL and DISABLED by default.
+#
+# Runs terraform plan (and apply on main) against a real Azure subscription
+# using GitHub OIDC, so no client secret is stored in GitHub.
+#
+# It only runs when started by hand (Actions tab > terraform-plan > Run
+# workflow) AND the repository variable AZURE_PLAN_ENABLED is set to "true".
+# Until then both jobs show as skipped.
+#
+# To turn it on:
+#   1. Set up a remote backend (see backend.tf). Plans against local state
+#      in CI would always try to create everything from scratch.
+#   2. Create an app registration in Entra ID and add a federated credential
+#      for this repo (entity type: Environment, name: lab).
+#   3. Give it the roles it needs on your subscription. Creating role
+#      assignments needs more than Contributor, for example Contributor plus
+#      Role Based Access Control Administrator limited to the lab resource
+#      group. Creating Entra groups needs the Microsoft Graph application
+#      permission Group.Create (Group.ReadWrite.All also works).
+#   4. In GitHub, create an environment called "lab" (add required
+#      reviewers if you want an approval before apply), then add these
+#      repository variables: AZURE_CLIENT_ID, AZURE_TENANT_ID,
+#      AZURE_SUBSCRIPTION_ID, and AZURE_PLAN_ENABLED = true.
+#      They are IDs, not secrets, but you can store them as secrets instead.
+
+name: terraform-plan
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  ARM_USE_OIDC: "true"
+  ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+  ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+jobs:
+  plan:
+    if: vars.AZURE_PLAN_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: lab
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.17.1
+
+      - run: terraform init -input=false
+      - run: terraform plan -input=false -out=tfplan
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: tfplan
+          retention-days: 1
+
+  apply:
+    if: vars.AZURE_PLAN_ENABLED == 'true' && github.ref == 'refs/heads/main'
+    needs: plan
+    runs-on: ubuntu-latest
+    environment: lab
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.17.1
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+
+      - run: terraform init -input=false
+      - run: terraform apply -input=false tfplan
